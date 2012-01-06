@@ -126,6 +126,13 @@ function getTextureNames( map ) {
   return names;        
 }
 
+//I'm sick of for loops
+function each(array, iterator) {
+  var l = array.length;
+  for( var i = 0; i < l; i++ ) {
+    iterator(array[i], i, array)
+  }
+}
 
 function painterSort( a, b ) {
         
@@ -168,10 +175,15 @@ function painterSort( a, b ) {
   }
 //  map.walls.sort( randOrd );
   function naiveOrd(a,b)  {
-    return Math.min(b.start.y, b.end.y) - Math.min(a.start.y,a.end.y)  
+
+    return (
+      Math.min(b.start.y, b.end.y)*Math.min(b.start.x, b.end.x)
+      - 
+      Math.min(a.start.y,a.end.y)*Math.min(a.start.x, a.end.x)
+    )
   }
   
-  map.walls.sort( naiveOrd );
+//  map.walls.sort( naiveOrd );
           
   //normalize start/end for y
   for( var i = 0; i < map.walls.length; i++ ) {
@@ -182,7 +194,17 @@ function painterSort( a, b ) {
       wall.end = temp;
     }
   }
+//  var list = null
   map.walls.sort( painterSort );
+  /*each (map.walls, function (sort) {
+    if(list == null)
+      list = new List(sort)
+    else
+      list.insert(sort, painterSort)
+  })*/
+
+//  map.walls = list.toArray()
+
 }
 
 /*
