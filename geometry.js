@@ -40,10 +40,38 @@
       function rectanglesIntersect( a, b ) {
         return !( a.left >= b.right || b.left >= a.right || a.top >= b.bottom || b.top >= a.bottom );
       }
+
+      //return a rectangle that is the overlaping portion of a,b. 
+      //throw if they do not intersect.
+      //tests in test.js
+      function getIntersection(a, b) {
+        if(!rectanglesIntersect( a, b )) throw new Error('expected rectangles to intersect')
+        return {
+          left: Math.max(a.left, b.left),
+          right: Math.min(a.right, b.right),
+          top: Math.max(a.top, b.top),
+          bottom: Math.min(a.bottom, b.bottom)
+        }
+      }
       
       function rectangleInside( parent, child ) {
         return child.left >= parent.left && child.top >= parent.top && child.right <= parent.right && child.bottom <= parent.bottom;
       }
+      
+      //calculate the y value at a given x value on a line
+      //units of y per unit of x
+      
+      function gradient (line) {
+        var g = (line.start.y - line.end.y) / (line.start.x - line.end.x) 
+        console.error('gradient', g)
+        return g
+      }
+      function yAtX(line, x) {
+        //very confusing results when i x*line.start.x by accident...
+        return line.start.y + gradient(line)* (x-line.start.x)
+      }
+      //see test.js for some tests
+
       
       function linesIntersect( a, b ) {
          // Denominator for ua and ub are the same, so store this calculation
