@@ -47,22 +47,6 @@ function loadTextures( names, onload ) {
   loadImage();
 }
 
-function pointsToWalls( points, texture, floor, ceiling, offset ) {
-  var walls = [];
-  for( var i = 0; i < points.length; i++ ) {
-    var point = points[ i ];
-    var nextPoint = i < points.length - 1 ? points[ i + 1 ] : points[ 0 ];
-    walls.push({
-      start: point,
-      end: nextPoint,
-      texture: texture,
-      floor: floor,
-      ceiling: ceiling,
-      offset: offset
-    });
-  }
-  return walls;
-}
 
 function getPattern( canvas, bitmap ) {
   return canvas.context.createPattern( bitmap.image, 'repeat' );
@@ -142,15 +126,64 @@ function getTextureNames( map ) {
   return names;        
 }
 
-function sortMap( map ) {
+//I'm sick of for loops
+function each(array, iterator) {
+  var l = array.length;
+  for( var i = 0; i < l; i++ ) {
+    iterator(array[i], i, array)
+  }
+}
+
+function painterSort( a, b ) {
+        
+    var aRect = lineToRect( a ),
+        bRect = lineToRect( b );
+    
+    if( rectanglesIntersect( aRect, bRect ) ) {      
+      //compare the Y values for each end of the overlaping section.
+      //(the ends may be touching)
+      //the wall that has a greater Y (at either end of the overlap) 
+      //is the more distant wall.
+
+      var inter = getIntersection(aRect, bRect)
+      var leftA = yAtX(a, inter.left)
+      var leftB = yAtX(b, inter.left)
+
+      if(leftA == leftB) {
+        var rightA = yAtX(a, inter.right)
+        var rightB = yAtX(b, inter.right)
+        return (
+            rightA < rightB ?  -1
+          : rightA > rightB ? 1
+          : 0 
+        )
+      }
+      return (leftA < leftB ? -1 : 1) //have already checked for equality on the left side
+      
+    }
+    return a.start.y > b.start.y ? 1 : a.start.y < b.start.y ? -1 : 
+      a.end.y > b.end.y ? 1 : a.end.y < b.end.y ? -1 : 0
+  }
+  function sortMap( map ) {
   //for testing we should shuffle the map first to make sure the sort
   //doesn't only work because some walls happen to start off in right
   //place
-  function randOrd(){
+  // -- this creates some edgecases, because it's possible that
+  // A < B < C < B', yet B > B' because of an overlap...
+  function randOrd(a,b){
     return ( Math.round( Math.random() ) -0.5 );
   }
-  map.walls.sort( randOrd );
+//  map.walls.sort( randOrd );
+  function naiveOrd(a,b)  {
+
+    return (
+      Math.min(b.start.y, b.end.y)*Math.min(b.start.x, b.end.x)
+      - 
+      Math.min(a.start.y,a.end.y)*Math.min(a.start.x, a.end.x)
+    )
+  }
   
+//  map.walls.sort( naiveOrd );
           
   //normalize start/end for y
   for( var i = 0; i < map.walls.length; i++ ) {
@@ -161,57 +194,24 @@ function sortMap( map ) {
       wall.end = temp;
     }
   }
-  
-  //sort on ymin
-  map.walls.sort( function( a, b ) {
-    
-    
-    var aRect = lineToRect( a ),
-        bRect = lineToRect( b );
-        
-    
-    if( rectanglesIntersect( a, b ) ) {          
-      /*
-      //handle case where both have same start            
-      if( a.start.y == b.start.y ) {
-        return a.end.y > b.end.y ? 1 : a.end.y < b.end.y ? -1 : 0;
-      }
-      */
-      
-      
-      /*
-      //handle case where both have same end
-      if( a.end.y == b.end.y ) {
-        return a.start.y > b.start.y ? 1 : a.start.y < b.start.y ? -1 : 0;
-      }
-      */
-      
-      /*
-      var overlaps = reduceLinesToOverlap( a, b ),
-          oA = overlaps.get( a ),
-          oB = overlaps.get( b );
-          
-      //handle case where both have same start
-      if( oA.start.y == oB.start.y ) {
-        return oA.end.y > oB.end.y ? 1 : oA.end.y < oB.end.y ? -1 : 0;
-      }   
-      */
-      /*
-      //handle case where both have same end
-      if( oA.end.y == oB.end.y ) {
-        return oA.start.y > oB.start.y ? 1 : oA.start.y < oB.start.y ? -1 : 0;
-      }
-      */
-      
-      
-      //return oA.start.y > oB.start.y ? 1 : oA.start.y < oB.start.y ? -1 : 0;            
-    }          
-    
-    return a.start.y > b.start.y ? 1 : a.start.y < b.start.y ? -1 : 
-      a.end.y > b.end.y ? 1 : a.end.y < b.end.y ? -1 : 0
-      //0;
-  });    
+//  var list = null
+  map.walls.sort( painterSort );
+  /*each (map.walls, function (sort) {
+    if(list == null)
+      list = new List(sort)
+    else
+      list.insert(sort, painterSort)
+  })*/
+
+//  map.walls = list.toArray()
+
 }
+
+/*
+  what does this do?
+
+  map over the walls and check if any wall is inside anyother wall.
+*/
 
 function findInsides( map ) {
   var insides = [];
@@ -244,6 +244,14 @@ function findOverlapHash( map ) {
   }
   return overlaps;      
 }
+
+/*
+
+  reduce lines to overlap?
+  
+  is this for checking collisions?
+
+*/
 
 function reduceLinesToOverlap( a, b ) {
   var aX1 = Math.min( a.start.x, a.end.x ),
@@ -309,9 +317,9 @@ function drawMap( map ) {
   
   if( !drawExtras ) return;
   
-  var overlaps = lineBoundingIntersections( map.walls );
-  var insides = findInsides( map );
-  var overlapsHash = findOverlapHash( map );
+  //var overlaps = lineBoundingIntersections( map.walls );
+  //var insides = findInsides( map );
+  //var overlapsHash = findOverlapHash( map );
   
   var yLines = [];
   for( var i = 0; i < map.walls.length; i++ ) {
@@ -332,11 +340,12 @@ function drawMap( map ) {
     
     
     //debug - wall sort order ( wall id )
-    var text = new Text( i + ' (' + wall.id + ')', 'sans-serif', '#fff' );
-    text.x = ( wall.start.x + wall.end.x ) / 2;
-    text.y = ( ( wall.start.y + wall.end.y ) / 2 ) + ( wall.ceiling / 2 );          
-    stage.addChild( text );
-    
+    if(true) {
+      var text = new Text( i + ' (' + wall.id + ')->'+ wall.order, 'sans-serif', '#fff' );
+      text.x = ( wall.start.x + wall.end.x ) / 2;
+      text.y = ( ( wall.start.y + wall.end.y ) / 2 ) + ( wall.ceiling / 2 );          
+      stage.addChild( text );
+    }    
     
     // ylines
     if( yLines.indexOf( wall.start.y ) == -1 ) {
@@ -351,9 +360,11 @@ function drawMap( map ) {
     var rect = lineToRect( wall );
     var g = new Graphics();
     
+    //draw overlaps on top of the map for debugging purposes.
+    /*
     var overlapIndex = overlaps.indexOf( wall );
     //var overlapIndex = insides.indexOf( wall );
-    if( overlapIndex != -1 ) {          
+    if( overlapIndex != -1 && false) {          
       //var fill = overlapIndex != -1 ? Graphics.getRGB( 255, 0, 0 ) : Graphics.getRGB( 128, 128, 128 );
       var hue = ( 360 / map.walls.length ) * ( wall.id + 1 );
       var fill = Graphics.getHSL( hue, 100, 50 );
@@ -367,6 +378,7 @@ function drawMap( map ) {
       s.alpha = 0.125;
       stage.addChild( s );  
     }
+    */
     /*
     //overlaps
     if( overlapIndex != -1 ) {
@@ -465,41 +477,10 @@ function drawMap( map ) {
 }
 
 function init(){
-  var points = [
-    { x: 253, y: 270 },
-    { x: 359, y: 142 },
-    { x: 397, y: 304 },
-    { x: 552, y: 365 },
-    { x: 409, y: 451  },
-    { x: 399, y: 618 },
-    { x: 273, y: 508 },
-    { x: 111, y: 550 },
-    { x: 177, y: 397 },
-    { x: 87, y: 256 }
-  ];
-  var extraWalls = pointsToWalls( points, 'RW10_3', 0, 128, { x: 0, y: 0 } );
-  for( var i = 0; i < extraWalls.length; i++ ) {
-    map.walls.push( extraWalls[ i ] );
-  }       
-  
-  //use index before sorting as id
-  for( var i = 0; i < map.walls.length; i++ ) {
-    map.walls[ i ].id = i;
-  }
-  
-  //debug - remove all walls that don't cause problems
-  var newWalls = [];
-  var problematicWalls = [ 3, 4, 5, 11, 12, 13, 14 ];
-  for( var i = 0; i < map.walls.length; i++ ) {
-    if( problematicWalls.indexOf( map.walls[ i ].id ) != -1 ) {
-      newWalls.push( map.walls[ i ] );
-    }
-  }
-  map.walls = newWalls;
   
   drawMap( map );
   stage.update();
-  Ticker.setFPS( 2 );
+  Ticker.setFPS( 60 );
   Ticker.addListener( this );
   $( canvas ).bind( 'click', function() {
     Ticker.setPaused( !Ticker.getPaused() );
@@ -509,19 +490,22 @@ function init(){
 function tick(){
   stage.removeAllChildren();
   
-  var rotateBy = 10;
-  rotation += rotateBy;
-  rotation = rotation > 360 ? rotation - 360 : rotation;
-  rotDebug.html( rotation );
+  if(true) {
+    var rotateBy = 10;
+    rotation += rotateBy;
+    rotation = rotation > 360 ? rotation - 360 : rotation;
+    rotDebug.html( rotation );
   
-  for( var i = 0; i < map.walls.length; i++ ) {
-    var wall = map.walls[ i ];
-    wall.start = rotateAround( wall.start, { x: 400, y: 400 }, rotateBy );
-    wall.end = rotateAround( wall.end, { x: 400, y: 400 }, rotateBy );
+    for( var i = 0; i < map.walls.length; i++ ) {
+      var wall = map.walls[ i ];
+      wall.start = rotateAround( wall.start, { x: 400, y: 400 }, rotateBy );
+      wall.end = rotateAround( wall.end, { x: 400, y: 400 }, rotateBy );
+    }
   }
-  
   drawMap( map );
   stage.update();        
+//  Ticker.setPaused(true)
+
 }      
      
 
