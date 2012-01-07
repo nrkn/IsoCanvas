@@ -183,9 +183,6 @@ function painterSort( a, b ) {
     )
   }
   
-//  map.walls.sort( naiveOrd );
-          
-  //normalize start/end for y
   for( var i = 0; i < map.walls.length; i++ ) {
     var wall = map.walls[ i ];
     if( wall.start.y > wall.end.y ) {
@@ -194,117 +191,10 @@ function painterSort( a, b ) {
       wall.end = temp;
     }
   }
-//  var list = null
   map.walls.sort( painterSort );
-  /*each (map.walls, function (sort) {
-    if(list == null)
-      list = new List(sort)
-    else
-      list.insert(sort, painterSort)
-  })*/
-
-//  map.walls = list.toArray()
 
 }
 
-/*
-  what does this do?
-
-  map over the walls and check if any wall is inside anyother wall.
-*/
-
-function findInsides( map ) {
-  var insides = [];
-  for( var i = 0; i < map.walls.length; i++ ) {
-    for( var j = i + 1; j < map.walls.length; j++ ) {
-      var aRect = lineToRect( map.walls[ i ] ),
-          bRect = lineToRect( map.walls[ j ] );
-          
-      if( rectangleInside( aRect, bRect ) || rectangleInside( bRect, aRect ) ) {
-        insides.push( map.walls[ i ] );
-        insides.push( map.walls[ j ] );
-      }
-    }
-  }
-  return insides;
-}
-
-function findOverlapHash( map ) {
-  var overlaps = new Hashtable();
-  for( var i = 0; i < map.walls.length; i++ ) {
-    for( var j = i + 1; j < map.walls.length; j++ ) {
-      var aRect = lineToRect( map.walls[ i ] ),
-          bRect = lineToRect( map.walls[ j ] );
-          
-      if( rectanglesIntersect( aRect, bRect ) ) {
-        overlaps.put( map.walls[ i ], map.walls[ j ] );
-        overlaps.put( map.walls[ j ], map.walls[ i ] );
-      }
-    }
-  }
-  return overlaps;      
-}
-
-/*
-
-  reduce lines to overlap?
-  
-  is this for checking collisions?
-
-*/
-
-function reduceLinesToOverlap( a, b ) {
-  var aX1 = Math.min( a.start.x, a.end.x ),
-    aX2 = Math.max( a.start.x, a.end.x ),
-    bX1 = Math.min( b.start.x, b.end.x ),
-    bX2 = Math.max( b.start.x, b.end.x ),
-    overlapStart = Math.max( aX1, bX1 ),
-    overlapEnd = Math.min( aX2, bX2 ),
-    top = Math.min( a.start.y, b.start.y ),
-    bottom = Math.max( a.end.y, b.end.y ),
-    leftLine = {
-      start: {
-        x: overlapStart,
-        y: top
-      },
-      end: {
-        x: overlapStart,
-        y: bottom
-      }
-    },
-    rightLine = {
-      start: {
-        x: overlapEnd,
-        y: top
-      },
-      end: {
-        x: overlapEnd,
-        y: bottom
-      }
-    },
-    aStart = linesIntersect( leftLine, a ),
-    aEnd = linesIntersect( rightLine, a ),
-    bStart = linesIntersect( leftLine, b ),
-    bEnd = linesIntersect( rightLine, b ); 
-  
-  //nomalize the y so start is always lower
-  if( aStart.y > aEnd.y ) {
-    var temp = aStart;
-    aStart = aEnd;
-    aEnd = temp;
-  }        
-  if( bStart.y > bEnd.y ) {
-    var temp = bStart;
-    bStart = bEnd;
-    bEnd = temp;
-  }
-  
-  var data = new Hashtable();
-  data.put( a, { start: aStart, end: aEnd } );
-  data.put( b, { start: bStart, end: bEnd } );
-  
-  return data;
-}
 
 function drawMap( map ) {        
   sortMap( map );
@@ -316,28 +206,10 @@ function drawMap( map ) {
   }          
   
   if( !drawExtras ) return;
-  
-  //var overlaps = lineBoundingIntersections( map.walls );
-  //var insides = findInsides( map );
-  //var overlapsHash = findOverlapHash( map );
-  
+    
   var yLines = [];
   for( var i = 0; i < map.walls.length; i++ ) {
-    var wall = map.walls[ i ];
-    
-    /*
-    //outline original map data
-    var g = new Graphics();
-    g.setStrokeStyle( 1 );
-    g.beginStroke( Graphics.getRGB( 255, 0, 0 ) );
-    g.moveTo( wall.start.x, wall.start.y + 128 );
-    g.lineTo( wall.end.x, wall.end.y + 128 );
-    g.endStroke();
-    var s = new Shape( g );
-    s.alpha = 0.5;          
-    stage.addChild( s );          
-    */
-    
+    var wall = map.walls[ i ];    
     
     //debug - wall sort order ( wall id )
     if(true) {
@@ -359,121 +231,7 @@ function drawMap( map ) {
     //bounding boxes
     var rect = lineToRect( wall );
     var g = new Graphics();
-    
-    //draw overlaps on top of the map for debugging purposes.
-    /*
-    var overlapIndex = overlaps.indexOf( wall );
-    //var overlapIndex = insides.indexOf( wall );
-    if( overlapIndex != -1 && false) {          
-      //var fill = overlapIndex != -1 ? Graphics.getRGB( 255, 0, 0 ) : Graphics.getRGB( 128, 128, 128 );
-      var hue = ( 360 / map.walls.length ) * ( wall.id + 1 );
-      var fill = Graphics.getHSL( hue, 100, 50 );
-      g.setStrokeStyle( 1 );
-      g.beginStroke( Graphics.getRGB( 255, 255, 255 ) );
-      g.beginFill( fill );
-      g.rect( rect.left, rect.top + 128, rect.width, rect.height );
-      g.endFill();
-      g.endStroke();
-      var s = new Shape( g );
-      s.alpha = 0.125;
-      stage.addChild( s );  
-    }
-    */
-    /*
-    //overlaps
-    if( overlapIndex != -1 ) {
-      var a = wall,
-          b = overlapsHash.get( wall ),
-          aX1 = Math.min( a.start.x, a.end.x ),
-          aX2 = Math.max( a.start.x, a.end.x ),
-          bX1 = Math.min( b.start.x, b.end.x ),
-          bX2 = Math.max( b.start.x, b.end.x ),
-          overlapStart = Math.max( aX1, bX1 ),
-          overlapEnd = Math.min( aX2, bX2 ),
-          top = Math.min( a.start.y, b.start.y ),
-          bottom = Math.max( a.end.y, b.end.y ),
-          leftLine = {
-            start: {
-              x: overlapStart,
-              y: top
-            },
-            end: {
-              x: overlapStart,
-              y: bottom
-            }
-          },
-          rightLine = {
-            start: {
-              x: overlapEnd,
-              y: top
-            },
-            end: {
-              x: overlapEnd,
-              y: bottom
-            }
-          },
-          aStart = linesIntersect( leftLine, a ),
-          aEnd = linesIntersect( rightLine, a ),
-          bStart = linesIntersect( leftLine, b ),
-          bEnd = linesIntersect( rightLine, b ); 
-
-          var g2 = new Graphics();
-          g2.setStrokeStyle( 1 );
-          
-          g2.beginStroke( Graphics.getRGB( 0, 255, 0 ) );
-          g2.moveTo( aStart.x, aStart.y + 128 );
-          g2.lineTo( aEnd.x, aEnd.y + 128 );
-          g2.endStroke();
-          
-          g2.beginStroke( Graphics.getRGB( 0, 0, 255 ) );
-          g2.moveTo( bStart.x, bStart.y + 128 );
-          g2.lineTo( bEnd.x, bEnd.y + 128 );
-          g2.endStroke();                
-          
-          var s2 = new Shape( g2 );
-          s2.alpha = 1;
-          
-          stage.addChild( s2 );                            
-    }    
-    */        
   } 
-  /*
-  for( var i = 0; i < yLines.length; i++ ) {
-    //horizontal lines
-    var g = new Graphics();
-    g.setStrokeStyle( 1 );
-    g.beginStroke( Graphics.getRGB( 128, 128, 128 ) );
-    g.moveTo( 0, yLines[ i ] + 128 );
-    g.lineTo( 1000, yLines[ i ] + 128 );
-    g.endStroke();
-    var s = new Shape( g );
-    s.alpha = 0.125;
-    
-    stage.addChild( s );
-    
-    //points
-    var line = {
-      start: { x: 0, y: yLines[ i ] },
-      end: { x: 1000, y: yLines[ i ] }
-    };
-    
-    for( var j = 0; j < map.walls.length; j++ ) {
-      var wall = map.walls[ j ];
-      var y = linesIntersect( line, wall );
-      if( y ) {
-        g = new Graphics();
-        g.setStrokeStyle( 1 );
-        g.beginStroke( Graphics.getRGB( 0, 0, 0 ) );
-        g.beginFill( Graphics.getRGB( 0, 0, 255 ) );
-        g.drawCircle( y.x, y.y + 128, 3 );
-        s = new Shape( g );
-        s.x = 0;
-        s.y = 0;
-        stage.addChild( s );            
-      }
-    }
-  }
-  */
 }
 
 function init(){
@@ -506,9 +264,7 @@ function tick(){
   stage.update();        
 //  Ticker.setPaused(true)
 
-}      
-     
-
+}
 
 $(function() {
   canvas = document.getElementById( 'c' );
