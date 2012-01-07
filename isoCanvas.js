@@ -1,7 +1,6 @@
 /*
   get offset working
   walls need to be vertically offset based on floor      
-    this needs to affect sort order too
   draw polygons (floors), need to be able to have holes.
   to be faux-isometric need to halve the y values
   wad->json?
@@ -118,11 +117,12 @@ function drawSprite( sprite) {
 
 function getTextureNames( map ) {
   var names = [];
-  each(map.walls, function (w) {
+  each(map.walls || [], function (w) {
     setAdd(names, w.image || w.texture)
   })
-  each(map.sprites, function (w) {
-    setAdd(names, w.image)
+  
+  each(map.sprites || [], function (w) {
+    setAdd(names, w.image || w.texture)
   })
 
   return names;        
@@ -217,7 +217,7 @@ function tick(){
     each(map.entities, function (e) {
       each(['start', 'end', 'position'], function (s) {
         if(e[s] != null)
-          e[s] = rotateAround( e[s], { x: 400, y: 400 }, rotateBy );
+          e[s] = rotateAround( e[s], { x: 2000, y: 2000 }, rotateBy );
       })
     })
   }

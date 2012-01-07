@@ -1,5 +1,6 @@
 //I'm sick of for loops
 function each(array, iterator) {
+  if(array == null) return
   var l = array.length;
   for( var i = 0; i < l; i++ ) {
     iterator(array[i], i, array)
