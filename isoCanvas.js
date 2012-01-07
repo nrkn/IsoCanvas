@@ -126,112 +126,61 @@ function getTextureNames( map ) {
   return names;        
 }
 
-//I'm sick of for loops
-function each(array, iterator) {
-  var l = array.length;
-  for( var i = 0; i < l; i++ ) {
-    iterator(array[i], i, array)
-  }
-}
 
 function painterSort( a, b ) {
-        
-    var aRect = lineToRect( a ),
-        bRect = lineToRect( b );
-    
-    if( rectanglesIntersect( aRect, bRect ) ) {      
-      //compare the Y values for each end of the overlaping section.
-      //(the ends may be touching)
-      //the wall that has a greater Y (at either end of the overlap) 
-      //is the more distant wall.
-
-      var inter = getIntersection(aRect, bRect)
-      var leftA = yAtX(a, inter.left)
-      var leftB = yAtX(b, inter.left)
-
-      if(leftA == leftB) {
-        var rightA = yAtX(a, inter.right)
-        var rightB = yAtX(b, inter.right)
-        return (
-            rightA < rightB ?  -1
-          : rightA > rightB ? 1
-          : 0 
-        )
-      }
-      return (leftA < leftB ? -1 : 1) //have already checked for equality on the left side
       
-    }
-    return a.start.y > b.start.y ? 1 : a.start.y < b.start.y ? -1 : 
-      a.end.y > b.end.y ? 1 : a.end.y < b.end.y ? -1 : 0
-  }
-  function sortMap( map ) {
-  //for testing we should shuffle the map first to make sure the sort
-  //doesn't only work because some walls happen to start off in right
-  //place
-  // -- this creates some edgecases, because it's possible that
-  // A < B < C < B', yet B > B' because of an overlap...
-  function randOrd(a,b){
-    return ( Math.round( Math.random() ) -0.5 );
-  }
-//  map.walls.sort( randOrd );
-  function naiveOrd(a,b)  {
-
-    return (
-      Math.min(b.start.y, b.end.y)*Math.min(b.start.x, b.end.x)
-      - 
-      Math.min(a.start.y,a.end.y)*Math.min(a.start.x, a.end.x)
-    )
-  }
+  var aRect = lineToRect( a ),
+      bRect = lineToRect( b );
   
-  for( var i = 0; i < map.walls.length; i++ ) {
-    var wall = map.walls[ i ];
-    if( wall.start.y > wall.end.y ) {
-      var temp = wall.start;
-      wall.start = wall.end;
-      wall.end = temp;
-    }
-  }
-  map.walls.sort( painterSort );
+  if( rectanglesIntersect( aRect, bRect ) ) {      
+    //compare the Y values for each end of the overlaping section.
+    //(the ends may be touching)
+    //the wall that has a greater Y (at either end of the overlap) 
+    //is the more distant wall.
 
+    var inter = getIntersection(aRect, bRect)
+    var leftA = yAtX(a, inter.left)
+    var leftB = yAtX(b, inter.left)
+
+    if(leftA == leftB) {
+      var rightA = yAtX(a, inter.right)
+      var rightB = yAtX(b, inter.right)
+      return (
+          rightA < rightB ?  -1
+        : rightA > rightB ? 1
+        : 0 
+      )
+    }
+    return (leftA < leftB ? -1 : 1) //have already checked for equality on the left side
+    
+  }
+  return a.start.y > b.start.y ? 1 : a.start.y < b.start.y ? -1 : 
+    a.end.y > b.end.y ? 1 : a.end.y < b.end.y ? -1 : 0
 }
 
+function sortMap (map) {
+  map.walls.sort(painterSort)
+}
 
 function drawMap( map ) {        
-  sortMap( map );
+
+  sortMap(map);
   
-  for( var i = 0; i < map.walls.length; i++ ) {
-    var wall = map.walls[ i ];
-    
-    drawWall( wall );
-  }          
+  each( map.walls, drawWall );
   
   if( !drawExtras ) return;
     
   var yLines = [];
-  for( var i = 0; i < map.walls.length; i++ ) {
-    var wall = map.walls[ i ];    
+  each(map.walls, function (wall, i) {
     
     //debug - wall sort order ( wall id )
-    if(true) {
-      var text = new Text( i + ' (' + wall.id + ')->'+ wall.order, 'sans-serif', '#fff' );
+    if(false) {
+      var text = new Text( i, 'sans-serif', '#fff' );
       text.x = ( wall.start.x + wall.end.x ) / 2;
       text.y = ( ( wall.start.y + wall.end.y ) / 2 ) + ( wall.ceiling / 2 );          
       stage.addChild( text );
     }    
-    
-    // ylines
-    if( yLines.indexOf( wall.start.y ) == -1 ) {
-      yLines.push( wall.start.y );
-    }
-    
-    if( yLines.indexOf( wall.end.y ) == -1 ) {
-      yLines.push( wall.end.y );
-    }
-    
-    //bounding boxes
-    var rect = lineToRect( wall );
-    var g = new Graphics();
-  } 
+  })
 }
 
 function init(){

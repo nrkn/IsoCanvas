@@ -63,7 +63,6 @@
       
       function gradient (line) {
         var g = (line.start.y - line.end.y) / (line.start.x - line.end.x) 
-        console.error('gradient', g)
         return g
       }
       function yAtX(line, x) {
@@ -73,6 +72,7 @@
       //see test.js for some tests
 
       
+      //this might be more useful if it returned a point that the two points intersected on.
       function linesIntersect( a, b ) {
          // Denominator for ua and ub are the same, so store this calculation
          var d = ( b.end.y - b.start.y ) * (a.end.x - a.start.x) - (b.end.x - b.start.x) * (a.end.y - a.start.y);
@@ -119,5 +119,5 @@
         var translatedPoint = translate( point, translatePoint );
         var rotatedPoint = rotate( translatedPoint, degrees );
         return translate( rotatedPoint, pivot );        
-      }      
+      }
       
