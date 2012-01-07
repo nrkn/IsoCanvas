@@ -189,4 +189,4 @@ function wadData( wad ) {
 }
 
 // Download the file
-$.get('map01.wad', wad, 'dataview');
+$.get('doom1.wad', wad, 'dataview');
