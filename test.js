@@ -147,7 +147,6 @@ function assertIntersection( a,b, ex) {
     {left: 0, right:3, top: 0, bottom: 3}
   )
 
-
 assert(painterSort(
   { start: { x: 200, y: 200 },
     end: { x: 500, y: 500 },

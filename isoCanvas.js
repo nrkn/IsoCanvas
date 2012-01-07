@@ -65,7 +65,7 @@ function getPattern( canvas, bitmap ) {
 function drawWall( wall ) {
   var start = wall.start,
       end = wall.end,
-      height = wall.ceiling - wall.floor,
+      height = 100, //wall.ceiling - wall.floor,
       image = wall.image || wall.texture ,
       offset = wall.offset,
       width = Math.ceil( distance( start, end ) ),            
@@ -90,7 +90,7 @@ function drawWall( wall ) {
   }
   
   x = start.x;
-  y = start.y;
+  y = start.y - height;
   
   if( start.x > end.x ) {
     x -= ( start.x - end.x );
@@ -110,7 +110,7 @@ function drawWall( wall ) {
 function drawSprite( sprite) {
   var bitmap = images[sprite.image].clone();
   bitmap.x = sprite.position.x - ( bitmap.image.width / 2 ); //not 100% sure, this seems right
-  bitmap.y = sprite.position.y + bitmap.image.height; //height must be added
+  bitmap.y = sprite.position.y - bitmap.image.height; //height must be added
   
   stage.addChild( bitmap );
 }
@@ -131,8 +131,8 @@ function getTextureNames( map ) {
 
 function painterSort( a, b ) {
       
-  var aRect = lineToRect( a ),
-      bRect = lineToRect( b );
+  var aRect = a.toRect(),
+      bRect = b.toRect();
   
   if( rectanglesIntersect( aRect, bRect ) ) {      
     //compare the Y values for each end of the overlaping section.
@@ -141,27 +141,54 @@ function painterSort( a, b ) {
     //is the more distant wall.
 
     var inter = getIntersection(aRect, bRect)
-    var leftA = yAtX(a, inter.left)
-    var leftB = yAtX(b, inter.left)
+    var leftA = a.yAtX(inter.left)
+    var leftB = b.yAtX(inter.left)
 
     if(leftA == leftB) {
-      var rightA = yAtX(a, inter.right)
-      var rightB = yAtX(b, inter.right)
+      var rightA = a.yAtX(inter.right)
+      var rightB = b.yAtX(inter.right)
       return (
-          rightA < rightB ?  -1
-        : rightA > rightB ? 1
+          rightA < rightB ? -1
+        : rightA > rightB ?  1
         : 0 
       )
     }
     return (leftA < leftB ? -1 : 1) //have already checked for equality on the left side
     
   }
-  return a.start.y > b.start.y ? 1 : a.start.y < b.start.y ? -1 : 
-    a.end.y > b.end.y ? 1 : a.end.y < b.end.y ? -1 : 0
+  return a.minY() - b.minY()
+//  return a.start.y > b.start.y ? 1 : a.start.y < b.start.y ? -1 : 
+  //  a.end.y > b.end.y ? 1 : a.end.y < b.end.y ? -1 : 0
 }
 
 function sortMap (map) {
   (map.entities || map.walls).sort(painterSort)
+}
+
+function drawBoundingBox (entity, i) {
+
+    var rect = entity.toRect()
+    var g2 = new Graphics();
+    g2.setStrokeStyle( 1 );
+
+    g2.beginStroke( Graphics.getRGB( 0, 255, 0 ) );
+    g2.moveTo( rect.left, rect.top );
+    g2.lineTo( rect.right, rect.top );
+    g2.lineTo( rect.right, rect.bottom );
+    g2.lineTo( rect.left, rect.bottom );
+    g2.lineTo( rect.left, rect.top );
+    g2.endStroke();
+    
+    var text = new Text( i, 'sans-serif', '#fff' );
+    text.x = ( rect.left + rect.right ) / 2;
+    text.y = ( ( rect.top + rect.bottom - (entity.ceiling || 0)) / 2 );          
+
+    var s2 = new Shape( g2 );
+    s2.alpha = 1;
+    
+    stage.addChild( text );
+    stage.addChild( s2 );
+
 }
 
 function drawMap( map ) {
@@ -169,33 +196,19 @@ function drawMap( map ) {
   sortMap(map)
 
   each( map.entities, function (e) {
-    ({
-      'wall': drawWall,
-      'sprite': drawSprite
-    })[e.type](e)
+    e.draw(e)
   });
   
   if( !drawExtras ) return;
-    
-    
-  each(map.sprites, drawSprite)
-//  drawSprite({x:500, y:500}, images ['TROOB1'])  
+  
+  //draw bounding boxes around entities, for debugging.
+  each(map.entities, drawBoundingBox)
 
-  var yLines = [];
-  each(map.walls, function (wall, i) {
-    
-    //debug - wall sort order ( wall id )
-    if(true) {
-      var text = new Text( i, 'sans-serif', '#fff' );
-      text.x = ( wall.start.x + wall.end.x ) / 2;
-      text.y = ( ( wall.start.y + wall.end.y ) / 2 ) + ( wall.ceiling / 2 );          
-      stage.addChild( text );
-    }    
-  })
 }
 
 function init(){
   
+  reformatMap(map)
   drawMap( map );
   stage.update();
   Ticker.setFPS( 60 );
@@ -203,6 +216,7 @@ function init(){
   $( canvas ).bind( 'click', function() {
     Ticker.setPaused( !Ticker.getPaused() );
   });
+
 }
 
 function tick(){
@@ -212,18 +226,20 @@ function tick(){
     var rotateBy = 10;
     rotation += rotateBy;
     rotation = rotation > 360 ? rotation - 360 : rotation;
-//    rotDebug.html( rotation );
-  
+    //rotDebug.html( rotation );
+    //make a general purpose debug panel
     each(map.entities, function (e) {
       each(['start', 'end', 'position'], function (s) {
         if(e[s] != null)
-          e[s] = rotateAround( e[s], { x: 2000, y: 2000 }, rotateBy );
+          e[s] = rotateAround( e[s], { x: 400, y: 400 }, rotateBy );
       })
     })
   }
   drawMap( map );
-  stage.update();        
-//  Ticker.setPaused(true)
+  stage.update();
+}
+
+function initWall (w) {
 
 }
 
@@ -231,12 +247,28 @@ function reformatMap(map) {
   map.entities = []
   each(map.walls, function(w) {
     w.type = 'wall'
-    map.entities .push(w)
+    w.draw = drawWall
+    w.minY = function () {
+      return Math.min(this.start.y, this.end.y)
+    }
+    w.toRect = lineToRect
+    w.yAtX = function (x) {
+      return yAtX(this,x)
+    }
+    map.entities.push(w)
   })
   each(map.sprites, function(w) {
     w.type = 'sprite'
-    w.start = w.position
-    w.end = w.position
+    w.draw = drawSprite
+    w.toRect = spriteToRect
+    w.minY = function () {
+      return this.position.y
+    }
+    w.yAtX = function (x) {
+      return this.position.y
+    }
+    w.width = images[w.image].image.width
+    w.height = images[w.image].image.height
     map.entities.push(w)
   })
 }
@@ -247,8 +279,5 @@ $(function() {
   stage = new Stage( canvas );        
   rotDebug = $( '#r' );
   var names = getTextureNames( map );
-
-  reformatMap(map)
-  
   loadImages( names, init )
 });

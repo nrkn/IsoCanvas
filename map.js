@@ -47,7 +47,7 @@ var map = {
       floor: 0,
       ceiling: 128,
       offset: { x: 0, y: 0 }
-    },
+    }
   ],
   floors: [],
   sprites: [
