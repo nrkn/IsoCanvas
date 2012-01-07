@@ -17,4 +17,10 @@ function argv (search) { //pass in window.location.search
 
 }
 
+function setAdd(array, item) {
+  if(array.indexOf(item) == -1)
+    return array.push(item), true
+  return false
+}
+
 console.error(argv("?key=value&whatever"))

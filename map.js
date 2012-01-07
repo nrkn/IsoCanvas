@@ -11,7 +11,7 @@ var map = {
     {
       start: { x: 400, y: 0 },
       end: { x: 800, y: 300 },
-      texture: 'RW10_3',
+      image: 'RW10_3',
       floor: 0,
       ceiling: 128,
       offset: { x: 0, y: 0 }
@@ -19,7 +19,7 @@ var map = {
     {
       start: { x: 800, y: 300 },
       end: { x: 650, y: 800 },
-      texture: 'RW10_3',
+      image: 'RW10_3',
       floor: 0,
       ceiling: 128,
       offset: { x: 0, y: 0 }
@@ -27,7 +27,7 @@ var map = {
     {
       start: { x: 650, y: 800 },
       end: { x: 150, y: 800 },
-      texture: 'RW10_3',
+      image: 'RW10_3',
       floor: 0,
       ceiling: 128,
       offset: { x: 0, y: 0 }
@@ -35,7 +35,7 @@ var map = {
     {
       start: { x: 150, y: 800 },
       end: { x: 0, y: 300 },
-      texture: 'RW10_3',
+      image: 'RW10_3',
       floor: 0,
       ceiling: 128,
       offset: { x: 0, y: 0 }
@@ -43,13 +43,21 @@ var map = {
     {
       start: { x: 0, y: 300 },
       end: { x: 400, y: 0 },
-      texture: 'RW10_3',
+      image: 'RW10_3',
       floor: 0,
       ceiling: 128,
       offset: { x: 0, y: 0 }
     },
   ],
-  floors: [
+  floors: [],
+  sprites: [
+    {
+      position: { x: 0, y: 300 },
+      image: 'TROOB1',
+      floor: 0,
+      ceiling: 128,
+      offset: { x: 0, y: 0 }
+    }    
   ]
 }
 
@@ -89,7 +97,7 @@ var map = {
   map.walls = newWalls;
 */
 
-function pointsToWalls( points, texture, floor, ceiling, offset ) {
+function pointsToWalls( points, image, floor, ceiling, offset ) {
   var walls = [];
   for( var i = 0; i < points.length; i++ ) {
     var point = points[ i ];
@@ -97,7 +105,7 @@ function pointsToWalls( points, texture, floor, ceiling, offset ) {
     walls.push({
       start: point,
       end: nextPoint,
-      texture: texture,
+      image: image,
       floor: floor,
       ceiling: ceiling,
       offset: offset

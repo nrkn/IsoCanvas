@@ -5,8 +5,20 @@
   draw polygons (floors), need to be able to have holes.
   to be faux-isometric need to halve the y values
   wad->json?
+
+
+  sprites.
+    sorted with walls, by their single coordinate. (compare to Y value for walls that
+    they intersect with.)
+  
+  floors
+    sorted with walls.
+
+  user interaction:
+  arrow keys to scroll or rotate? 
+  click to walk?
 */
-var canvas,  
+var canvas,
     context,         
     stage,
     textures = {},
@@ -47,7 +59,6 @@ function loadTextures( names, onload ) {
   loadImage();
 }
 
-
 function getPattern( canvas, bitmap ) {
   return canvas.context.createPattern( bitmap.image, 'repeat' );
 }
@@ -56,7 +67,7 @@ function drawWall( wall ) {
   var start = wall.start,
       end = wall.end,
       height = wall.ceiling - wall.floor,
-      texture = wall.texture,
+      texture = wall.image || wall.texture ,
       offset = wall.offset,
       width = Math.ceil( distance( start, end ) ),            
       buffer = makeCanvas( width, height ),
@@ -107,21 +118,12 @@ function drawSprite( position, bitmap ) {
 
 function getTextureNames( map ) {
   var names = [];
-  for( var i = 0; i < map.walls.length; i++ ) {
-    var wall = map.walls[ i ];
-    var name = wall.texture;
-    if( names.indexOf( name ) == -1 ) {
-      names.push( name );
-    }
-  }
-  
-  for( var i = 0; i < map.floors.length; i++ ) {
-    var floor = map.floors[ i ];
-    var name = floor.texture;
-    if( names.indexOf( name ) == -1 ) {
-      names.push( name );
-    }
-  } 
+  each(map.walls, function (w) {
+    setAdd(names, w.image || w.texture)
+  })
+  each(map.sprites, function (w) {
+    setAdd(names, w.image)
+  })
 
   return names;        
 }
@@ -169,6 +171,8 @@ function drawMap( map ) {
   
   if( !drawExtras ) return;
     
+  drawSprite({x:500, y:500}, textures['TROOB1'])  
+
   var yLines = [];
   each(map.walls, function (wall, i) {
     
@@ -220,5 +224,6 @@ $(function() {
   stage = new Stage( canvas );        
   rotDebug = $( '#r' );
   var names = getTextureNames( map );
-  loadTextures( names, init );
+  
+  loadTextures( names, init )
 });
