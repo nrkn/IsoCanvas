@@ -163,9 +163,8 @@ function sortMap (map) {
 }
 
 function drawMap( map ) {        
+  sortMap(map)
 
-  sortMap(map);
-  
   each( map.walls, drawWall );
   
   if( !drawExtras ) return;
@@ -174,7 +173,7 @@ function drawMap( map ) {
   each(map.walls, function (wall, i) {
     
     //debug - wall sort order ( wall id )
-    if(false) {
+    if(true) {
       var text = new Text( i, 'sans-serif', '#fff' );
       text.x = ( wall.start.x + wall.end.x ) / 2;
       text.y = ( ( wall.start.y + wall.end.y ) / 2 ) + ( wall.ceiling / 2 );          
