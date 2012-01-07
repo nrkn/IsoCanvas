@@ -65,7 +65,7 @@ var map = {
       ceiling: 128,
       offset: { x: 0, y: 0 }
     },
-        {
+    {
       position: { x: 600, y: 100 },
       image: 'TROOB1',
       floor: 0,

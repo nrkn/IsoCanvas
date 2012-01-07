@@ -161,13 +161,19 @@ function painterSort( a, b ) {
 }
 
 function sortMap (map) {
-  map.walls.sort(painterSort)
+  (map.entities || map.walls).sort(painterSort)
 }
 
-function drawMap( map ) {        
+function drawMap( map ) {
+
   sortMap(map)
 
-  each( map.walls, drawWall );
+  each( map.entities, function (e) {
+    ({
+      'wall': drawWall,
+      'sprite': drawSprite
+    })[e.type](e)
+  });
   
   if( !drawExtras ) return;
     
@@ -208,12 +214,11 @@ function tick(){
     rotation = rotation > 360 ? rotation - 360 : rotation;
 //    rotDebug.html( rotation );
   
-    each(map.walls, function (wall) {
-      wall.start = rotateAround( wall.start, { x: 400, y: 400 }, rotateBy );
-      wall.end = rotateAround( wall.end, { x: 400, y: 400 }, rotateBy );
-    })
-    each(map.sprites, function (sp) {
-      sp.position = rotateAround( sp.position , { x: 400, y: 400 }, rotateBy );
+    each(map.entities, function (e) {
+      each(['start', 'end', 'position'], function (s) {
+        if(e[s] != null)
+          e[s] = rotateAround( e[s], { x: 400, y: 400 }, rotateBy );
+      })
     })
   }
   drawMap( map );
@@ -222,12 +227,28 @@ function tick(){
 
 }
 
+function reformatMap(map) {
+  map.entities = []
+  each(map.walls, function(w) {
+    w.type = 'wall'
+    map.entities .push(w)
+  })
+  each(map.sprites, function(w) {
+    w.type = 'sprite'
+    w.start = w.position
+    w.end = w.position
+    map.entities.push(w)
+  })
+}
+
 $(function() {
   canvas = document.getElementById( 'c' );
   context = canvas.getContext( '2d' );
   stage = new Stage( canvas );        
   rotDebug = $( '#r' );
   var names = getTextureNames( map );
+
+  reformatMap(map)
   
   loadImages( names, init )
 });

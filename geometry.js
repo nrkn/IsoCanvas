@@ -120,4 +120,3 @@
         var rotatedPoint = rotate( translatedPoint, degrees );
         return translate( rotatedPoint, pivot );        
       }
-      
