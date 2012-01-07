@@ -52,12 +52,27 @@ var map = {
   floors: [],
   sprites: [
     {
-      position: { x: 0, y: 300 },
+      position: { x: 400, y: 400 },
       image: 'TROOB1',
       floor: 0,
       ceiling: 128,
       offset: { x: 0, y: 0 }
-    }    
+    },
+    {
+      position: { x: 300, y: 300 },
+      image: 'TROOB1',
+      floor: 0,
+      ceiling: 128,
+      offset: { x: 0, y: 0 }
+    },
+        {
+      position: { x: 600, y: 100 },
+      image: 'TROOB1',
+      floor: 0,
+      ceiling: 128,
+      offset: { x: 0, y: 0 }
+    }
+
   ]
 }
 

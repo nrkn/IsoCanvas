@@ -21,7 +21,7 @@
 var canvas,
     context,         
     stage,
-    textures = {},
+    images = {},
     rotation = 0,
     rotDebug,
     drawExtras = true;
@@ -39,7 +39,7 @@ function makeCanvas( width, height ) {
   };
 }      
 
-function loadTextures( names, onload ) {
+function loadImages( names, onload ) {
   var i = 0;
   var loadImage = function(){
     if( i >= names.length ) {
@@ -49,7 +49,7 @@ function loadTextures( names, onload ) {
     
     var img = new Image();
     img.src = names[ i ] + '.png';
-    textures[ names[ i ] ] = new Bitmap( img );
+    images[ names[ i ] ] = new Bitmap( img );
     img.onload = function() {
       i++;
       loadImage();
@@ -67,11 +67,11 @@ function drawWall( wall ) {
   var start = wall.start,
       end = wall.end,
       height = wall.ceiling - wall.floor,
-      texture = wall.image || wall.texture ,
+      image = wall.image || wall.texture ,
       offset = wall.offset,
       width = Math.ceil( distance( start, end ) ),            
       buffer = makeCanvas( width, height ),
-      bitmap = textures[ texture ],
+      bitmap = images[ image],
       pattern = getPattern( buffer, bitmap ),
       wallBitmap,
       degrees = degreesFromVector( start, end ),
@@ -108,12 +108,12 @@ function drawWall( wall ) {
   stage.addChild( wallBitmap );
 }
 
-function drawSprite( position, bitmap ) {
-  var sprite = bitmap.clone();
-  sprite.x = position.x - ( bitmap.image.width / 2 );
-  sprite.y = position.y - bitmap.image.height;
+function drawSprite( sprite) {
+  var bitmap = images[sprite.image].clone();
+  bitmap.x = sprite.position.x - ( bitmap.image.width / 2 ); //not 100% sure, this seems right
+  bitmap.y = sprite.position.y + bitmap.image.height; //height must be added
   
-  stage.addChild( sprite );
+  stage.addChild( bitmap );
 }
 
 function getTextureNames( map ) {
@@ -171,7 +171,9 @@ function drawMap( map ) {
   
   if( !drawExtras ) return;
     
-  drawSprite({x:500, y:500}, textures['TROOB1'])  
+    
+  each(map.sprites, drawSprite)
+//  drawSprite({x:500, y:500}, images ['TROOB1'])  
 
   var yLines = [];
   each(map.walls, function (wall, i) {
@@ -204,13 +206,15 @@ function tick(){
     var rotateBy = 10;
     rotation += rotateBy;
     rotation = rotation > 360 ? rotation - 360 : rotation;
-    rotDebug.html( rotation );
+//    rotDebug.html( rotation );
   
-    for( var i = 0; i < map.walls.length; i++ ) {
-      var wall = map.walls[ i ];
+    each(map.walls, function (wall) {
       wall.start = rotateAround( wall.start, { x: 400, y: 400 }, rotateBy );
       wall.end = rotateAround( wall.end, { x: 400, y: 400 }, rotateBy );
-    }
+    })
+    each(map.sprites, function (sp) {
+      sp.position = rotateAround( sp.position , { x: 400, y: 400 }, rotateBy );
+    })
   }
   drawMap( map );
   stage.update();        
@@ -225,5 +229,5 @@ $(function() {
   rotDebug = $( '#r' );
   var names = getTextureNames( map );
   
-  loadTextures( names, init )
+  loadImages( names, init )
 });
