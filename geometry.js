@@ -26,14 +26,27 @@
         return intersections;        
       }
       
-      function lineToRect( line ) {
+      function toRect ( entity ) {
+        if( 'wall' == entity.type) return lineToRect(entity)
+        else spriteToRect(entity)
+      }
+      function spriteToRect () {
+        var half = (this.width/2)
         return {
-          left: Math.min( line.start.x, line.end.x ),
-          right: Math.max( line.start.x, line.end.x ),
-          top: Math.min( line.start.y, line.end.y ),
-          bottom: Math.max( line.start.y, line.end.y ),
-          width: Math.max( line.start.x, line.end.x ) - Math.min( line.start.x, line.end.x ),
-          height: Math.max( line.start.y, line.end.y ) - Math.min( line.start.y, line.end.y )
+            left:   this.position.x - half,
+            right:  this.position.x + half,
+            top:    this.position.y - this.height,
+            bottom: this.position.y
+          }
+      }
+      function lineToRect( ) {
+        return {
+          left:   Math.min( this.start.x, this.end.x ),
+          right:  Math.max( this.start.x, this.end.x ),
+          top:    Math.min( this.start.y, this.end.y ),
+          bottom: Math.max( this.start.y, this.end.y ),
+          width:  Math.max( this.start.x, this.end.x ) - Math.min( this.start.x, this.end.x ),
+          height: Math.max( this.start.y, this.end.y ) - Math.min( this.start.y, this.end.y )
         };
       }
       
@@ -63,7 +76,6 @@
       
       function gradient (line) {
         var g = (line.start.y - line.end.y) / (line.start.x - line.end.x) 
-        console.error('gradient', g)
         return g
       }
       function yAtX(line, x) {
@@ -73,6 +85,7 @@
       //see test.js for some tests
 
       
+      //this might be more useful if it returned a point that the two points intersected on.
       function linesIntersect( a, b ) {
          // Denominator for ua and ub are the same, so store this calculation
          var d = ( b.end.y - b.start.y ) * (a.end.x - a.start.x) - (b.end.x - b.start.x) * (a.end.y - a.start.y);
@@ -119,5 +132,4 @@
         var translatedPoint = translate( point, translatePoint );
         var rotatedPoint = rotate( translatedPoint, degrees );
         return translate( rotatedPoint, pivot );        
-      }      
-      
+      }
