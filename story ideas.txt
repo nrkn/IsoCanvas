@@ -1,0 +1,88 @@
+Orb of Worlds
+  * Dungeon crawler
+  * Quick summary is that it's an excuse to genre-mash, ie scifi vs fantasy vs
+    western etc.
+  * Instead of one large overland map that allows you to enter smaller areas 
+    re. Diablo, it is composed of multiple small worlds (ahem, like doom levels)
+  * The orb is an artifact that allows the player to dimension shift
+  * There are creatures that live between the worlds that lock on to the orb,
+    you have to keep moving or they find and attack you. In the early game they
+    are too powerful to overcome. There are two ways that they can lock on to
+    you, if you shift too often (so has a cooldown timer) or if you stay in one
+    world for too long - sense of urgency
+  * Each world is procedurally generated along the lines of a theme - initially
+    probably just easy stuff ie a sci-fi (doom) theme and a medieval theme. 
+    Theme is just texture/map style, enemy types, weapon types, artifacts etc.
+    See POSSIBLE THEMES below
+  * Each world has a minor orb to collect - possibly the goal is to collect a 
+    certain number. Orbs take forms relevant to theme, ie in Doom it might be 
+    the blue soulsphere, in a fantasy setting it might be a circular tavern sign
+    etc. 
+  * Limbo level, a sort of central hub  
+  * How to multiplayer? Having many small worlds should make easy to scale though
+    
+Possible Themes
+  Categorisation ideas:  
+    LOCATION:
+      city/forest/space station
+    GENRE:
+      fantasy/horror/sci fi/contemporary
+    TIME:
+      prehistoric/medieval/contemporary/near future/distant future
+    CULTURE:
+      western/japanese/mesoamerican etc.
+    EVENT:
+      nuclear apocalypse/zombie apocalypse/war/alien invasion etc.
+    SPECIFIC:
+      wizard of oz/chtulhu/mad max/etc. etc.
+    ACTORS:
+      high fantasy (orcs,dragons,elves etc.)/aliens/demons/zombies/mythological etc. 
+  Mind dump ideas:
+    Dungeon - fantasy
+    Island/Jungle - pirate, like krice's? monkey island etc?
+    Forest - spiders etc? fantasy/contemporary/horror
+    City - fantasy? contemporary? sci-fi?
+    Space station - sci-fi/hell(doom?)?
+    Swamp - lizardmen/voodoo etc?
+    Tower?
+    fairytales?
+    horror?
+    oz?
+    post-apoc (def!)
+    western, ie gunslinger
+    riverworld
+    cthulhu?
+    vaguely greek mythology
+    ultima?
+    camelot?
+    caverns
+    hell (doom/other)
+    vampire fantasy/contemporary
+    x-files
+    maya/aztec/toltec etc.
+    ancient egypt
+    ai vs man (ie terminator, matrix etc)
+    steampunk?
+    werewolf/shapeshifters/other animal etc.
+    japan medieval (ninja, samurai etc)
+    war/battlefield
+    superhero
+    contemporary horror - house of hell (like rocky horror kind of)
+    wilderness/overland
+    ice setting - GRIM!
+    arena
+    desert/middle east/djinns
+    mad max
+    nordic
+    pirates/seas etc.
+    prehistoric, dinosaurs etc.
+    zombie apocalypse
+    alien invasion ie war worlds, starship troopers etc.
+    undersea, via diving equipment/magic
+    mecha
+    dreamtime?
+    stealth?  thief etc.
+    spirit planes etc.
+    sewers
+  
+  

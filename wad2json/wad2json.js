@@ -1,5 +1,17 @@
 function wad( view ) {
-  var wad = {};
+  var wad = {
+        header: {},
+        directory: [],
+        maps: []
+      },
+      getRecords = function getRecords( entry, recordReader ) {
+        var records = [];
+        view.seek( entry.position );
+        while( view.tell() < entry.position + entry.size ) {
+          records.push( recordReader() );
+        }
+        return records;
+      };
   
   wad.header = {
     wadType: view.getString( 4 ),
@@ -8,14 +20,15 @@ function wad( view ) {
   };
   
   view.seek( wad.header.directoryOffset );
-  wad.directory = [];  
-  wad.maps = [];
   for( var i = 0; i < wad.header.numLumps; i++ ) {
     wad.directory.push({
       position: view.getInt32(),
       size: view.getInt32(),
       name: view.getString( 8 ).replace( /\u0000/g, '' )      
     });    
+    //if we found a map entry add it to maps because the following entries 
+    //contain its data so we need to save the index so we know where to start 
+    //reading them from
     if( wad.directory[ i ].name.match( /^E\dM\d|MAP\d\d$/ ) ) {
       wad.maps.push({
         name: wad.directory[ i ].name,
@@ -32,119 +45,196 @@ function wad( view ) {
         blockmap: []
       });
     }
+    
+    if( wad.directory[ i ].name === 'PLAYPAL' ) {
+      wad.palettes = i;
+    }
+  }
+  
+  if( wad.palettes ) {
+    wad.palettes = getRecords( wad.directory[ wad.palettes ], function() {
+      var palette = [];
+      for( var j = 0; j < 256; j++ ) {
+        var red = view.getUint8(),
+            green = view.getUint8(),
+            blue = view.getUint8();
+        
+        palette.push( 'rgb( ' + red + ', ' + green + ', ' + blue + ' )' );
+      }
+      
+      return palette;
+    });
+  } else {
+    wad.palettes = [];
   }
   
   for( var i = 0; i < wad.maps.length; i++ ) {
-    var map = wad.maps[ i ];
-    var index = map.index + 1;
-    var indices = {
-      things: index++,
-      linedefs: index++,
-      sidedefs: index++,
-      vertexes: index++,
-      segs: index++,
-      ssectors: index++,
-      nodes: index++,
-      sectors: index++,
-      reject: index++,
-      blockmap: index
-    };
+    var map = wad.maps[ i ],
+        index = map.index + 1,
+        indices = {
+          things: index++,
+          linedefs: index++,
+          sidedefs: index++,
+          vertexes: index++,
+          segs: index++,
+          ssectors: index++,
+          nodes: index++,
+          sectors: index++,
+          reject: index++,
+          blockmap: index
+        };
     
-    //for now only get things we need, ignore nodes etc.
     var thingsEntry = wad.directory[ indices.things ];
-    map.things = getThings( view, thingsEntry );
+    map.things = getRecords( thingsEntry, function() {
+      return {
+        x: view.getInt16(),
+        y: view.getInt16(),
+        angle: view.getUint16(),
+        type: view.getInt16(),
+        flags: view.getInt16()
+      };
+    });
     
     var linedefsEntry = wad.directory[ indices.linedefs ];
-    map.linedefs = getLinedefs( view, linedefsEntry );
+    map.linedefs = getRecords( linedefsEntry, function() {
+      return {
+        startVertex: view.getInt16(),
+        endVertex: view.getInt16(),
+        flags: view.getInt16(),
+        specialType: view.getInt16(),
+        sectorTag: view.getInt16(),
+        rightSidedef: view.getInt16(),
+        leftSidedef: view.getInt16()
+      };
+    });
     
     var sidedefsEntry = wad.directory[ indices.sidedefs ];
-    map.sidedefs = getSidedefs( view, sidedefsEntry );
+    map.sidedefs = getRecords( sidedefsEntry, function() {
+      return {
+        xOffset: view.getInt16(),
+        yOffset: view.getInt16(),
+        upperTexture: view.getString( 8 ).replace( /\u0000/g, '' ),
+        lowerTexture: view.getString( 8 ).replace( /\u0000/g, '' ),
+        middleTexture: view.getString( 8 ).replace( /\u0000/g, '' ),
+        sector: view.getInt16()     
+      };
+    });
     
     var vertexesEntry = wad.directory[ indices.vertexes ];
-    map.vertexes = getVertexes( view, vertexesEntry );
+    map.vertexes = getRecords( vertexesEntry, function() {
+      return {
+        x: view.getInt16(),
+        y: view.getInt16(),
+      };
+    });
+    
+    var segsEntry = wad.directory[ indices.segs ];
+    map.segs = getRecords( segsEntry, function(){
+      return {
+        startVertex: view.getInt16(),
+        endVertex: view.getInt16(),
+        angle: view.getUint16(),        
+        linedef: view.getInt16(),        
+        direction: view.getInt16(),        
+        offset: view.getInt16()
+      };
+    });
+    
+    var ssectorsEntry = wad.directory[ indices.ssectors ];
+    map.ssectors = getRecords( ssectorsEntry, function(){
+      return {
+        segCount: view.getInt16(),
+        firstSeg: view.getInt16()      
+      };
+    });
+    
+    var nodesEntry = wad.directory[ indices.nodes ];
+    map.nodes = getRecords( nodesEntry, function(){
+      var node = {
+        partitionLineX: view.getInt16(),
+        partitionLineY: view.getInt16(),
+        changeInX: view.getInt16(),
+        changeInY: view.getInt16(),
+        boundingBoxes: {
+          right: {
+            top: view.getInt16(),
+            bottom: view.getInt16(),
+            left: view.getInt16(),
+            right: view.getInt16() 
+          },
+          left: {
+            top: view.getInt16(),
+            bottom: view.getInt16(),
+            left: view.getInt16(),
+            right: view.getInt16() 
+          }
+        },
+        children: {
+          left: view.getInt16(),
+          right: view.getInt16()
+        }
+      };
+      
+      //TODO here we need a little code to modify children, because:
+      /*
+        http://doom.wikia.com/wiki/Node
+        The type of each child field is determined by its sign bit (bit 15). If 
+        bit 15 is zero, the child field gives the node number of a subnode. If 
+        bit 15 is set, then bits 0-14 give the number of a subsector. 
+        
+        so:
+        if( node.children.FOO < 0 ) {
+          node.children.FOO = {
+            type: 'subsector',
+            index: bitshifted original index
+          }
+        } else {
+          node.children.FOO = {
+            type: 'subnode',
+            index: original index
+          }
+        }
+        
+        not implemented yet as I can't be bothered dealing with bitshifting 
+        until I have some tests to make sure my code works
+      */
+      return node;
+    });
     
     var sectorsEntry = wad.directory[ indices.sectors ];
-    map.sectors = getSectors( view, sectorsEntry );
+    map.sectors = getRecords( sectorsEntry, function() {
+      return {
+        floorHeight: view.getInt16(),
+        ceilingHeight: view.getInt16(),
+        floorTexture: view.getString( 8 ).replace( /\u0000/g, '' ),
+        ceilingTexture: view.getString( 8 ).replace( /\u0000/g, '' ),
+        lightLevel: view.getInt16(),
+        type: view.getInt16(),      
+        tag: view.getInt16()
+      };
+    });
+    
+    /*
+      TODO: reject table - it's a sector lookup table to determine if one sector
+      is visible from another as real-time line-of-sight is an expensive 
+      operation - not implemented yet as I can't be bothered dealing with 
+      bitshifting until I have some tests to make sure my code works
+    
+      http://doom.wikia.com/wiki/Reject
+      
+      var rejectsEntry etc.
+    */
+
+    /*
+      TODO: blockmaps, these are just the map divided into a grid then a listing
+      of linedefs in each cell, used to collision detection so you know given
+      an object's grid location which linedefs it could potentially collide
+      with - this is actually quite fast to generate without using the 
+      precalculated data
+    */
   }  
   
   wadData( wad );
-}
-
-function getThings( view, thingsEntry ) {
-  var things = [];
-  view.seek( thingsEntry.position );
-  for( var i = 0; i < thingsEntry.size / 10; i++ ) {
-    things.push({
-      x: view.getInt16(),
-      y: view.getInt16(),
-      angle: view.getInt16(),
-      type: view.getInt16(),
-      flags: view.getInt16()
-    });
-  } 
-  return things;  
-}
-
-function getLinedefs( view, linedefsEntry ) {
-  var linedefs = [];
-  view.seek( linedefsEntry.position );
-  for( var i = 0; i < linedefsEntry.size / 14; i++ ) {
-    linedefs.push({
-      startVertex: view.getInt16(),
-      endVertex: view.getInt16(),
-      flags: view.getInt16(),
-      specialType: view.getInt16(),
-      sectorTag: view.getInt16(),
-      rightSidedef: view.getInt16(),
-      leftSidedef: view.getInt16()
-    });
-  } 
-  return linedefs;  
-}
-
-function getSidedefs( view, sidedefsEntry ) {
-  var sidedefs = [];
-  view.seek( sidedefsEntry.position );
-  for( var i = 0; i < sidedefsEntry.size / 30; i++ ) {
-    sidedefs.push({
-      xOffset: view.getInt16(),
-      yOffset: view.getInt16(),
-      upperTexture: view.getString( 8 ).replace( /\u0000/g, '' ),
-      lowerTexture: view.getString( 8 ).replace( /\u0000/g, '' ),
-      middleTexture: view.getString( 8 ).replace( /\u0000/g, '' ),
-      sector: view.getInt16()
-    });
-  } 
-  return sidedefs;
-}
-
-function getVertexes( view, vertexesEntry ) {
-  var vertexes = [];
-  view.seek( vertexesEntry.position );
-  for( var i = 0; i < vertexesEntry.size / 4; i++ ) {
-    vertexes.push({
-      x: view.getInt16(),
-      y: view.getInt16(),
-    });
-  } 
-  return vertexes;
-}
-
-function getSectors( view, sectorsEntry ) {
-  var sectors = [];
-  view.seek( sectorsEntry.position );
-  for( var i = 0; i < sectorsEntry.size / 26; i++ ) {
-    sectors.push({
-      floorHeight: view.getInt16(),
-      ceilingHeight: view.getInt16(),
-      floorTexture: view.getString( 8 ).replace( /\u0000/g, '' ),
-      ceilingTexture: view.getString( 8 ).replace( /\u0000/g, '' ),
-      lightLevel: view.getInt16(),
-      type: view.getInt16(),      
-      tag: view.getInt16()
-    });
-  }
-  return sectors;
 }
 
 function wadMapToMap( wadMap ) {
@@ -153,7 +243,8 @@ function wadMapToMap( wadMap ) {
     floors: []
   };
   
-  //make map top left 0,0
+  //make map top left 0,0 - I think limit on doom maps is 64k but let's use 100k
+  //to be safe
   var minX = 100000;
   var minY = 100000;
   
@@ -183,10 +274,28 @@ function wadMapToMap( wadMap ) {
 }
 
 function wadData( wad ) {
+  $( 'body' ).append( '<h2>TOC:</h2>' );
+  $( 'body' ).append( 
+    '<ol>' + 
+      '<li><a href="#raw">Raw wad data</a></li>' + 
+      '<li><a href="#palette">Palettes</a></li>' + 
+      '<li><a href="#iso">Iso map json</a></li>' + 
+    '</ol>' 
+  );
+  $( 'body' ).append( '<h2 id="raw">Raw wad data:</h2>' );
   $( 'body' ).append( JSON.stringify( wad ) );
-  $( 'body' ).append( '<h2>Iso map:</h2>' );
+  $( 'body' ).append( '<h2 id="palette">Palettes:</h2>' );
+  for( var p = 0; p < wad.palettes.length; p++ ) {
+    var palette = wad.palettes[ p ];
+    $( 'body' ).append( '<h3 style="clear: left;">Palette #' + p + ':</h3>' );
+    for( var i = 0; i < 256; i++ ) {
+      var clear = i % 16 === 0 ? ' clear: left;' : '';
+      $( 'body' ).append( '<div style="background: ' + palette[ i ] + '; float: left; width: 1em; height: 1em;' + clear + '"></div>' );
+    }
+  }
+  $( 'body' ).append( '<h2 id="iso" style="clear: left;">Iso map:</h2>' );
   $( 'body' ).append( JSON.stringify( wadMapToMap( wad.maps[ 0 ] ) ) );
 }
 
 // Download the file
-$.get('doom1.wad', wad, 'dataview');
+$.get('map01.wad', wad, 'dataview');
