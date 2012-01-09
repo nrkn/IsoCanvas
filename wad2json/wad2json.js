@@ -1,4 +1,4 @@
-function wad( view ) {
+function parseWad( view ) {
   var wad = {
         header: {},
         directory: [],
@@ -47,10 +47,12 @@ function wad( view ) {
     }
     
     if( wad.directory[ i ].name === 'PLAYPAL' ) {
+      //temporarily store index in palettes so we know where to find them later
       wad.palettes = i;
     }
   }
   
+  //pwads don't usually have palettes so check if we found one in the directory
   if( wad.palettes ) {
     wad.palettes = getRecords( wad.directory[ wad.palettes ], function() {
       var palette = [];
@@ -69,8 +71,9 @@ function wad( view ) {
   }
   
   for( var i = 0; i < wad.maps.length; i++ ) {
-    var map = wad.maps[ i ],
+    var map = wad.maps[ i ],        
         index = map.index + 1,
+        //the following entries must follow the map descriptor in this order
         indices = {
           things: index++,
           linedefs: index++,
@@ -91,6 +94,15 @@ function wad( view ) {
         y: view.getInt16(),
         angle: view.getUint16(),
         type: view.getInt16(),
+        /*
+          would be more useful to expand these out into what they mean
+          but then, would we even use them?
+          0		Thing is on skill levels 1 & 2
+          1		Thing is on skill level 3
+          2		Thing is on skill levels 4 & 5
+          3		Thing is deaf
+          4		Thing is not in single player 
+        */
         flags: view.getInt16()
       };
     });
@@ -101,7 +113,9 @@ function wad( view ) {
         startVertex: view.getInt16(),
         endVertex: view.getInt16(),
         flags: view.getInt16(),
+        // The special value '-1' is used to indicate no sidedef, in one-sided lines. 
         specialType: view.getInt16(),
+        // http://doom.wikia.com/wiki/Linedef#Linedef_flags
         sectorTag: view.getInt16(),
         rightSidedef: view.getInt16(),
         leftSidedef: view.getInt16()
@@ -170,8 +184,8 @@ function wad( view ) {
           }
         },
         children: {
-          left: view.getInt16(),
-          right: view.getInt16()
+          right: view.getInt16(),
+          left: view.getInt16()          
         }
       };
       
@@ -298,4 +312,4 @@ function wadData( wad ) {
 }
 
 // Download the file
-$.get('map01.wad', wad, 'dataview');
+$.get('map01.wad', parseWad, 'dataview');
