@@ -287,17 +287,65 @@ function wadMapToMap( wadMap ) {
   return map;
 }
 
+function findLinesForSectors( wadMap ) {  
+  var sectorLines = {},
+      sectorMax = -1,
+      fix2SidedSameSector = false,
+      addLineToPolygon = function( line, sidedefIndex ) {
+        if( sidedefIndex == -1 ) return;
+        
+        var sidedef = wadMap.sidedefs[ sidedefIndex ];
+            
+        if( !sectorLines[ sidedef.sector ] ) {
+          sectorLines[ sidedef.sector ] = [];
+        }
+        
+        sectorLines[ sidedef.sector ].push( line );
+        
+        sectorMax = sidedef.sector > sectorMax ? sidedef.sector : sectorMax;
+      };
+      
+  for( var i = 0; i < wadMap.linedefs.length; i++ ) {
+    var linedef = wadMap.linedefs[ i ],
+        start = wadMap.vertexes[ linedef.startVertex ],
+        end = wadMap.vertexes[ linedef.endVertex ],
+        line = { start: start, end: end },
+        leftLine = { start: end, end: start };
+        
+    
+    //maybe sometimes we don't want to add 2 sided linedefs where both sidedefs 
+    //point at same sector
+    if( 
+      fix2SidedSameSector && 
+      linedef.rightSidedef != -1 && 
+      linedef.leftSidedef != -1 && 
+      wadMap.sidedefs[ linedef.rightSidedef ].sector == wadMap.sidedefs[ linedef.leftSidedef ].sector 
+    ) continue;
+    
+    addLineToPolygon( line, linedef.rightSidedef );
+    addLineToPolygon( leftLine, linedef.leftSidedef );
+  }
+  
+  sectorLines.length = sectorMax + 1;
+  
+  return sectorLines;
+}
+
 function wadData( wad ) {
   $( 'body' ).append( '<h2>TOC:</h2>' );
   $( 'body' ).append( 
     '<ol>' + 
       '<li><a href="#raw">Raw wad data</a></li>' + 
+      '<li><a href="#polygons">Polygons (first map)</a></li>' + 
       '<li><a href="#palette">Palettes</a></li>' + 
       '<li><a href="#iso">Iso map json</a></li>' + 
     '</ol>' 
   );
   $( 'body' ).append( '<h2 id="raw">Raw wad data:</h2>' );
   $( 'body' ).append( JSON.stringify( wad ) );
+  $( 'body' ).append( '<h2 id="polygons">Polygons (first map):</h2>' );
+  var sectorLines = findLinesForSectors( wad.maps[ 0 ] );
+  $( 'body' ).append( JSON.stringify( sectorLines ) );
   $( 'body' ).append( '<h2 id="palette">Palettes:</h2>' );
   for( var p = 0; p < wad.palettes.length; p++ ) {
     var palette = wad.palettes[ p ];
@@ -312,4 +360,4 @@ function wadData( wad ) {
 }
 
 // Download the file
-$.get('map01.wad', parseWad, 'dataview');
+$.get('doom1.wad', parseWad, 'dataview');
