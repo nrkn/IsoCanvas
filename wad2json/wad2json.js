@@ -1,8 +1,11 @@
+var logger = function( message ) {
+  $( '#log' ).append( message + '<br />' );
+};
 function parseWad( view ) {
   var wad = {
         header: {},
         directory: [],
-        maps: []
+        maps: []    
       },
       getRecords = function getRecords( entry, recordReader ) {
         var records = [];
@@ -11,14 +14,17 @@ function parseWad( view ) {
           records.push( recordReader() );
         }
         return records;
-      };
+      },
+      inFlats = false;
   
+  if( logger ) logger( 'Reading header' );
   wad.header = {
     wadType: view.getString( 4 ),
     numLumps: view.getInt32(),
     directoryOffset: view.getInt32()
   };
   
+  if( logger ) logger( 'Reading ' + wad.header.numLumps + ' lumps' );
   view.seek( wad.header.directoryOffset );
   for( var i = 0; i < wad.header.numLumps; i++ ) {
     wad.directory.push({
@@ -30,6 +36,7 @@ function parseWad( view ) {
     //contain its data so we need to save the index so we know where to start 
     //reading them from
     if( wad.directory[ i ].name.match( /^E\dM\d|MAP\d\d$/ ) ) {
+      if( logger ) logger( 'Found map ' + wad.directory[ i ].name );
       wad.maps.push({
         name: wad.directory[ i ].name,
         index: i,
@@ -46,14 +53,33 @@ function parseWad( view ) {
       });
     }
     
+    //flats?
+    if( wad.directory[ i ].name === 'F_START' ) {
+      if( logger ) logger( 'Found flats' );
+      inFlats = true;
+      //can wad have more than one flats section? if so this is wrong!
+      wad.flats = [];
+    }
+    
+    if( inFlats ) {
+      if( wad.directory[ i ].name === 'F_END' ) {
+        inFlats = false;
+      } else if( wad.directory[ i ].size == 4096 ) {
+        //save index for later processing
+        wad.flats.push( i );
+      }
+    }
+    
     if( wad.directory[ i ].name === 'PLAYPAL' ) {
+      if( logger ) logger( 'Found palette' );
       //temporarily store index in palettes so we know where to find them later
       wad.palettes = i;
     }
   }
   
   //pwads don't usually have palettes so check if we found one in the directory
-  if( wad.palettes ) {
+  if( wad.palettes != undefined ) {
+    if( logger ) logger( 'Reading palettes' );
     wad.palettes = getRecords( wad.directory[ wad.palettes ], function() {
       var palette = [];
       for( var j = 0; j < 256; j++ ) {
@@ -61,7 +87,11 @@ function parseWad( view ) {
             green = view.getUint8(),
             blue = view.getUint8();
         
-        palette.push( 'rgb( ' + red + ', ' + green + ', ' + blue + ' )' );
+        palette.push({
+          red: red,
+          green: green,
+          blue: blue
+        });
       }
       
       return palette;
@@ -70,6 +100,28 @@ function parseWad( view ) {
     wad.palettes = [];
   }
   
+  if( wad.flats ) {
+    if( logger ) logger( 'Reading ' + wad.flats.length + ' flats' );
+    for( var i = 0; i < wad.flats.length; i++ ) {
+      var pixels = getRecords( wad.directory[ wad.flats[ i ] ], function(){      
+        var rows = [];
+        for( var y = 0; y < 64; y++ ) {
+          var cols = [];
+          for( var x = 0; x < 64; x++ ) {
+            cols.push( view.getUint8() );
+          }
+          rows.push( cols );
+        }
+        return rows;
+      })[ 0 ];
+      wad.flats[ i ] = {
+        name: wad.directory[ wad.flats[ i ] ].name,
+        pixels: pixels
+      };
+    }
+  }
+  
+  if( logger ) logger( 'Reading ' + wad.maps.length + ' maps' );
   for( var i = 0; i < wad.maps.length; i++ ) {
     var map = wad.maps[ i ],        
         index = map.index + 1,
@@ -247,6 +299,7 @@ function parseWad( view ) {
       precalculated data
     */
   }  
+  if( logger ) logger( 'Finished reading wad' );
   
   wadData( wad );
 }
@@ -297,10 +350,14 @@ function findLinesForSectors( wadMap ) {
         var sidedef = wadMap.sidedefs[ sidedefIndex ];
             
         if( !sectorLines[ sidedef.sector ] ) {
-          sectorLines[ sidedef.sector ] = [];
+          sectorLines[ sidedef.sector ] = {
+            lines: [],
+            lightLevel: wadMap.sectors[ sidedef.sector ].lightLevel,
+            floorTexture: wadMap.sectors[ sidedef.sector ].floorTexture
+          };
         }
         
-        sectorLines[ sidedef.sector ].push( line );
+        sectorLines[ sidedef.sector ].lines.push( line );
         
         sectorMax = sidedef.sector > sectorMax ? sidedef.sector : sectorMax;
       };
@@ -311,7 +368,6 @@ function findLinesForSectors( wadMap ) {
         end = wadMap.vertexes[ linedef.endVertex ],
         line = { start: start, end: end },
         leftLine = { start: end, end: start };
-        
     
     //maybe sometimes we don't want to add 2 sided linedefs where both sidedefs 
     //point at same sector
@@ -331,6 +387,49 @@ function findLinesForSectors( wadMap ) {
   return sectorLines;
 }
 
+function flatToCanvas( flat, palette ) {
+  var canvas = document.createElement( 'canvas' ),
+      context = canvas.getContext( '2d' ),
+      imageData = context.createImageData( 64, 64 );
+    
+  canvas.width = canvas.height = 64;
+  
+  for( var y = 0; y < 64; y++ ) {
+    for( var x = 0; x < 64; x++ ) {
+      var pixel = flat.pixels[ y ][ x ],
+          offset = ( y * imageData.width + x ) * 4;
+      imageData.data[ offset ] = palette[ pixel ].red;
+      imageData.data[ offset + 1 ] = palette[ pixel ].green;
+      imageData.data[ offset + 2 ] = palette[ pixel ].blue;
+      imageData.data[ offset + 3 ] = 255;
+    }
+  }    
+    
+  context.putImageData( imageData, 0, 0 );
+      
+  return canvas;
+}
+
+
+function flatToDataUrl( flat, palette ) {
+  return flatToCanvas( flat, palette ).toDataURL( "image/png" );
+}
+
+function flatsToDataUrls( wad ) {
+  var flats = {},
+      keys = [];
+  
+  for( var f = 0; f < wad.flats.length; f++ ) {
+    var flat = wad.flats[ f ];
+    flats[ flat.name ] = flatToDataUrl( flat, wad.palettes[ 0 ] );
+    keys.push( flat.name );
+  }  
+  
+  flats.keys = keys;
+  
+  return flats;
+}
+
 function wadData( wad ) {
   $( 'body' ).append( '<h2>TOC:</h2>' );
   $( 'body' ).append( 
@@ -338,6 +437,7 @@ function wadData( wad ) {
       '<li><a href="#raw">Raw wad data</a></li>' + 
       '<li><a href="#polygons">Polygons (first map)</a></li>' + 
       '<li><a href="#palette">Palettes</a></li>' + 
+      '<li><a href="#flats">Flats</a></li>' + 
       '<li><a href="#iso">Iso map json</a></li>' + 
     '</ol>' 
   );
@@ -351,13 +451,21 @@ function wadData( wad ) {
     var palette = wad.palettes[ p ];
     $( 'body' ).append( '<h3 style="clear: left;">Palette #' + p + ':</h3>' );
     for( var i = 0; i < 256; i++ ) {
-      var clear = i % 16 === 0 ? ' clear: left;' : '';
-      $( 'body' ).append( '<div style="background: ' + palette[ i ] + '; float: left; width: 1em; height: 1em;' + clear + '"></div>' );
+      var clear = i % 16 === 0 ? ' clear: left;' : '',
+          color = 'rgb( ' + palette[ i ].red + ', ' + palette[ i ].green + ', ' + palette[ i ].blue + ' )';
+      $( 'body' ).append( '<div style="background: ' + color + '; float: left; width: 1em; height: 1em;' + clear + '"></div>' );
     }
   }
+  $( 'body' ).append( '<h2 id="flats" style="clear: left;">Flats:</h2>' );
+  for( var f = 0; f < wad.flats.length; f++ ) {
+    var flat = wad.flats[ f ];
+    
+    $( 'body' ).append( flatToCanvas( flat, wad.palettes[ 0 ] ) );
+  }
+  $( 'body' ).append( JSON.stringify( flatsToDataUrls( wad ) ) );
   $( 'body' ).append( '<h2 id="iso" style="clear: left;">Iso map:</h2>' );
   $( 'body' ).append( JSON.stringify( wadMapToMap( wad.maps[ 0 ] ) ) );
 }
 
 // Download the file
-$.get('doom1.wad', parseWad, 'dataview');
+$.get( 'doom1.wad', parseWad, 'dataview' );
