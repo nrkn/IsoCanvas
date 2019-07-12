@@ -1,0 +1,57 @@
+html, body {
+  font-family: sans-serif;
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: auto 1fr;
+}
+
+svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.wall-bounds {
+  pointer-events: none;
+  stroke: #eee;
+  stroke-width: 1;
+  fill: transparent;
+}
+
+.wall-bounds-corner {
+  stroke: #ddd;
+  fill: #ddd;
+}
+
+.wall-path {
+  stroke: #666;
+  stroke-width: 1;
+  fill: #ccc;
+}
+
+.selected .wall-path {
+  stroke: #143d66;
+  fill: #297acc;
+}
+
+.wall-path, .wall-line-start, .wall-line-end {
+  cursor: move;
+}
+
+.drag-line {
+  stroke: #143d66;
+  stroke-width: 2;
+}
+
+.intersection {
+  stroke: #f00;
+  fill: #f00;
+}
+
+.dragging .intersection {
+  display: none;
+}
