@@ -1,6 +1,6 @@
 /*
   get offset working
-  walls need to be vertically offset based on floor      
+  walls need to be vertically offset based on floor
   draw polygons (floors), need to be able to have holes.
   to be faux-isometric need to halve the y values
   wad->json?
@@ -9,16 +9,16 @@
   sprites.
     sorted with walls, by their single coordinate. (compare to Y value for walls that
     they intersect with.)
-  
+
   floors
     sorted with walls.
 
   user interaction:
-  arrow keys to scroll or rotate? 
+  arrow keys to scroll or rotate?
   click to walk?
 */
 var canvas,
-    context,         
+    context,
     stage,
     images = {},
     rotation = 0,
@@ -28,15 +28,15 @@ var canvas,
 function makeCanvas( width, height ) {
   var canvas = document.createElement( 'canvas' ),
       context = canvas.getContext( '2d' );
-      
+
   canvas.width = width;
   canvas.height = height;
-  
+
   return {
     canvas: canvas,
     context: context
   };
-}      
+}
 
 function loadImages( names, onload ) {
   var i = 0;
@@ -45,7 +45,7 @@ function loadImages( names, onload ) {
       onload();
       return false;
     }
-    
+
     var img = new Image();
     img.src = names[ i ] + '.png';
     images[ names[ i ] ] = new Bitmap( img );
@@ -54,44 +54,44 @@ function loadImages( names, onload ) {
       loadImage();
     };
   };
-  
+
   loadImage();
 }
 
 function getPattern( canvas, bitmap ) {
   return canvas.context.createPattern( bitmap.image, 'repeat' );
 }
-     
+
 function drawWall( wall ) {
   var start = wall.start,
       end = wall.end,
       height = 100, //wall.ceiling - wall.floor,
       image = wall.image || wall.texture ,
       offset = wall.offset,
-      width = Math.ceil( distance( start, end ) ),            
+      width = Math.ceil( distance( start, end ) ),
       buffer = makeCanvas( width, height ),
       bitmap = images[ image],
       pattern = getPattern( buffer, bitmap ),
       wallBitmap,
       degrees = degreesFromVector( start, end ),
-      x, 
+      x,
       y;
-      
-  degrees = degrees < 0 ? degrees + 360 : degrees;    
-      
+
+  degrees = degrees < 0 ? degrees + 360 : degrees;
+
   buffer.context.fillStyle = pattern;
   buffer.context.fillRect( 0, 0, width, height );
-  
-  wallBitmap = new Bitmap( buffer.canvas );            
+
+  wallBitmap = new Bitmap( buffer.canvas );
   wallBitmap.skewY = degrees;
-  
+
   if( wall.flag ) {
     wallBitmap.alpha = 0.25;
   }
-  
+
   x = start.x;
   y = start.y - height;
-  
+
   if( start.x > end.x ) {
     x -= ( start.x - end.x );
     if( start.y < end.y ) {
@@ -100,10 +100,10 @@ function drawWall( wall ) {
       y -= ( start.y - end.y );
     }
   }
-  
+
   wallBitmap.x = x;
   wallBitmap.y = y;
-    
+
   stage.addChild( wallBitmap );
 }
 
@@ -111,7 +111,7 @@ function drawSprite( sprite) {
   var bitmap = images[sprite.image].clone();
   bitmap.x = sprite.position.x - ( bitmap.image.width / 2 ); //not 100% sure, this seems right
   bitmap.y = sprite.position.y - bitmap.image.height; //height must be added
-  
+
   stage.addChild( bitmap );
 }
 
@@ -120,24 +120,24 @@ function getTextureNames( map ) {
   each(map.walls || [], function (w) {
     setAdd(names, w.image || w.texture)
   })
-  
+
   each(map.sprites || [], function (w) {
     setAdd(names, w.image || w.texture)
   })
 
-  return names;        
+  return names;
 }
 
 
 function painterSort( a, b ) {
-      
+
   var aRect = a.toRect(),
       bRect = b.toRect();
-  
-  if( rectanglesIntersect( aRect, bRect ) ) {      
+
+  if( rectanglesIntersect( aRect, bRect ) ) {
     //compare the Y values for each end of the overlaping section.
     //(the ends may be touching)
-    //the wall that has a greater Y (at either end of the overlap) 
+    //the wall that has a greater Y (at either end of the overlap)
     //is the more distant wall.
 
     var inter = getIntersection(aRect, bRect)
@@ -150,14 +150,14 @@ function painterSort( a, b ) {
       return (
           rightA < rightB ? -1
         : rightA > rightB ?  1
-        : 0 
+        : 0
       )
     }
     return (leftA < leftB ? -1 : 1) //have already checked for equality on the left side
-    
+
   }
   return a.minY() - b.minY()
-//  return a.start.y > b.start.y ? 1 : a.start.y < b.start.y ? -1 : 
+//  return a.start.y > b.start.y ? 1 : a.start.y < b.start.y ? -1 :
   //  a.end.y > b.end.y ? 1 : a.end.y < b.end.y ? -1 : 0
 }
 
@@ -178,14 +178,14 @@ function drawBoundingBox (entity, i) {
     g2.lineTo( rect.left, rect.bottom );
     g2.lineTo( rect.left, rect.top );
     g2.endStroke();
-    
+
     var text = new Text( i, 'sans-serif', '#fff' );
     text.x = ( rect.left + rect.right ) / 2;
-    text.y = ( ( rect.top + rect.bottom - (entity.ceiling || 0)) / 2 );          
+    text.y = ( ( rect.top + rect.bottom - (entity.ceiling || 0)) / 2 );
 
     var s2 = new Shape( g2 );
     s2.alpha = 1;
-    
+
     stage.addChild( text );
     stage.addChild( s2 );
 
@@ -198,16 +198,16 @@ function drawMap( map ) {
   each( map.entities, function (e) {
     e.draw(e)
   });
-  
+
   if( !drawExtras ) return;
-  
+
   //draw bounding boxes around entities, for debugging.
   each(map.entities, drawBoundingBox)
 
 }
 
 function init(){
-  
+
   reformatMap(map)
   drawMap( map );
   stage.update();
@@ -221,9 +221,9 @@ function init(){
 
 function tick(){
   stage.removeAllChildren();
-  
+
   if(true) {
-    var rotateBy = 10;
+    var rotateBy = 0.5;
     rotation += rotateBy;
     rotation = rotation > 360 ? rotation - 360 : rotation;
     //rotDebug.html( rotation );
@@ -276,7 +276,7 @@ function reformatMap(map) {
 $(function() {
   canvas = document.getElementById( 'c' );
   context = canvas.getContext( '2d' );
-  stage = new Stage( canvas );        
+  stage = new Stage( canvas );
   rotDebug = $( '#r' );
   var names = getTextureNames( map );
   loadImages( names, init )
