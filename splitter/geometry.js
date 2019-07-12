@@ -1,12 +1,12 @@
 /*
   Walls are drawn bottom to top in clockwise winding order:
-  ____
+  ____       ____
  a| /|b     a|\ |b
   |/ |       | \|
  c/  |       |  \d
   |  /d     c\  |
   | /|       |\ |
- e|/_|f     e| \|f
+ e|/_|f     e|_\|f
 
 x1,y1=d:    x1,y1=f:
 x1>x2       x1>x2
@@ -186,43 +186,6 @@ const findIntersections = geometries => {
           const intersection = lineIntersection( aLine, bLine )
 
           if ( !intersection ) return
-
-          Object.assign(
-            intersection,
-            { geometries: [ i, j ], lines: [ k, l ] }
-          )
-          intersections.push( intersection )
-        } )
-      } )
-    } )
-  } )
-
-  return intersections
-}
-
-const geometryIntersections = ( geometries, callback ) => {
-  const intersections = []
-
-  const lineSets = geometries.map(
-    g => pointsToLines( wallGeometryToPoints( g ) )
-  )
-
-  const indices = createSequence( geometries.length, i => i )
-
-  indices.forEach( i => {
-    indices.forEach( j => {
-      if ( i === j ) return
-
-      const aLines = lineSets[ i ]
-      const bLines = lineSets[ j ]
-
-      aLines.forEach( ( aLine, k ) => {
-        bLines.forEach( ( bLine, l ) => {
-          const intersection = lineIntersection( aLine, bLine )
-
-          if ( !intersection ) return
-
-          callback(  )
 
           Object.assign(
             intersection,

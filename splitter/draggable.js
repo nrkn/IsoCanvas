@@ -64,6 +64,7 @@ const makeDraggable = (
 
     if ( confined ) {
       const bbox = selectedElement.getBBox()
+
       minX = boundaryX1 - bbox.x
       maxX = boundaryX2 - bbox.x - bbox.width
       minY = boundaryY1 - bbox.y
@@ -78,9 +79,9 @@ const makeDraggable = (
 
     e.preventDefault()
 
-    var coord = getMousePosition( e )
-    var dx = coord.x - offset.x
-    var dy = coord.y - offset.y
+    const coord = getMousePosition( e )
+    let dx = coord.x - offset.x
+    let dy = coord.y - offset.y
 
     if ( confined ) {
       if ( dx < minX ) {

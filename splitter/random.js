@@ -15,4 +15,4 @@ const randomLine = ( width, height, x = 0, y = 0 ) => {
   return [ x1, y1, x2, y2 ]
 }
 
-const randomInt = ( exclMax ) => Math.floor( Math.random() * exclMax )
+const randomInt = exclMax => Math.floor( Math.random() * exclMax )
